@@ -4,12 +4,13 @@ import * as ProductController from './modules/product/product.controller.api';
 import * as CategoryController from './modules/category/category.controller.api';
 
 const app = new Elysia()
-  // Enable CORS for frontend
+  // Enable CORS for all origins
   .use(
     cors({
-      origin: true, // Allow all origins in development
-      methods: ['GET', 'POST', 'PUT', 'DELETE'],
-      credentials: true,
+      origin: '*', // Allow all origins
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: false,
     })
   )
   // Health check
