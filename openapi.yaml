@@ -1,0 +1,575 @@
+openapi: 3.0.3
+info:
+  title: Billa Shop Scraper API
+  description: |
+    RESTful API for accessing scraped product data from Billa shop.
+    
+    Built with Elysia framework and Drizzle ORM using SQLite database.
+    
+    ## Features
+    - Product search and filtering
+    - Category browsing with product counts
+    - Pagination support
+    - Promotion/sale filtering
+    - Many-to-many product-category relationships
+    
+    ## Data Source
+    Products are scraped from Billa shop API and stored in a local SQLite database.
+  version: 1.0.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3001
+    description: Development server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Products
+    description: Product catalog operations
+  - name: Categories
+    description: Category management and browsing
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the API health status and current timestamp
+      operationId: getHealth
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2026-01-13T13:56:01.491Z'
+
+  /api/products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      description: |
+        Retrieve a paginated list of products with optional filtering.
+        
+        Supports filtering by:
+        - Category slug
+        - Search text (name, brand, description)
+        - Promotion status
+        
+        Returns products with their associated categories.
+      operationId: getProducts
+      parameters:
+        - name: category
+          in: query
+          description: Filter by category slug
+          required: false
+          schema:
+            type: string
+            example: ovoce-1166
+        - name: search
+          in: query
+          description: Search in product name, brand, and description
+          required: false
+          schema:
+            type: string
+            example: jablko
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+            example: 30
+        - name: inPromotion
+          in: query
+          description: Filter by promotion status
+          required: false
+          schema:
+            type: boolean
+            example: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductResponse'
+
+  /api/products/promotions:
+    get:
+      tags:
+        - Products
+      summary: Get products on promotion
+      description: Retrieve products that are currently on sale/promotion
+      operationId: getPromotionProducts
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 20
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductWithCategories'
+
+  /api/products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      description: Retrieve a single product by its numeric ID
+      operationId: getProductById
+      parameters:
+        - name: id
+          in: path
+          description: Product ID
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductWithCategories'
+        '400':
+          description: Invalid product ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/products/slug/{slug}:
+    get:
+      tags:
+        - Products
+      summary: Get product by slug
+      description: Retrieve a single product by its URL-friendly slug
+      operationId: getProductBySlug
+      parameters:
+        - name: slug
+          in: path
+          description: Product slug
+          required: true
+          schema:
+            type: string
+            example: ceska-farma-jablko-cervene-volne-82123456
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductWithCategories'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/categories:
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      description: Retrieve all categories with product counts
+      operationId: getCategories
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryWithCount'
+
+  /api/categories/{slug}:
+    get:
+      tags:
+        - Categories
+      summary: Get category by slug
+      description: Retrieve a single category by its slug
+      operationId: getCategoryBySlug
+      parameters:
+        - name: slug
+          in: path
+          description: Category slug
+          required: true
+          schema:
+            type: string
+            example: ovoce-1166
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/categories/{slug}/products:
+    get:
+      tags:
+        - Categories
+      summary: Get products by category
+      description: Retrieve all products in a specific category with pagination
+      operationId: getProductsByCategory
+      parameters:
+        - name: slug
+          in: path
+          description: Category slug
+          required: true
+          schema:
+            type: string
+            example: ovoce-1166
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+            example: 30
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryProductsResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Internal product ID
+          example: 1
+        productId:
+          type: string
+          description: External product UUID
+          example: 4de215ad-e7cb-4aae-8e86-7c1413fe5390
+        sku:
+          type: string
+          description: Stock Keeping Unit
+          example: '82-237136'
+        slug:
+          type: string
+          description: URL-friendly identifier
+          example: francouzska-bageta-s-kvaskem-110g-82237136
+        name:
+          type: string
+          description: Product name
+          example: Francouzská bageta s kváskem 110g
+        descriptionShort:
+          type: string
+          nullable: true
+          description: Short product description
+          example: Francouzská bageta s kváskem 110g
+        descriptionLong:
+          type: string
+          nullable: true
+          description: Long product description
+        regulatedProductName:
+          type: string
+          nullable: true
+          description: Official regulated product name
+          example: Výrobek ze zmraženého polotovaru
+        category:
+          type: string
+          description: Primary category name
+          example: Bagety a veky
+        categorySlug:
+          type: string
+          description: Primary category slug
+          example: bagety-a-veky-2399
+        brand:
+          type: string
+          nullable: true
+          description: Brand name
+          example: Česká Farma
+        brandSlug:
+          type: string
+          nullable: true
+          description: Brand slug
+          example: ceska-farma
+        price:
+          type: integer
+          nullable: true
+          description: Current price in cents (halers)
+          example: 1190
+        pricePerUnit:
+          type: integer
+          nullable: true
+          description: Price per unit (kg/l) in cents
+          example: 10348
+        unitPrice:
+          type: number
+          nullable: true
+          description: Unit price (decimal)
+          example: 103.48
+        regularPrice:
+          type: integer
+          nullable: true
+          description: Regular price in cents (before discount)
+          example: 1190
+        discountPrice:
+          type: integer
+          nullable: true
+          description: Original price in cents (when on sale)
+          example: 1490
+        lowestPrice:
+          type: integer
+          nullable: true
+          description: Lowest price in recent history (cents)
+          example: 1790
+        inPromotion:
+          type: boolean
+          description: Whether product is currently on promotion
+          example: true
+        amount:
+          type: string
+          description: Product amount/quantity
+          example: '115'
+        weight:
+          type: number
+          nullable: true
+          description: Product weight in kg
+          example: 0.115
+        packageLabel:
+          type: string
+          nullable: true
+          description: Package type label
+          example: Kus
+        packageLabelKey:
+          type: string
+          nullable: true
+          description: Package type key
+          example: st
+        volumeLabelKey:
+          type: string
+          nullable: true
+          description: Volume unit key
+          example: gr
+        volumeLabelShort:
+          type: string
+          nullable: true
+          description: Volume unit abbreviation
+          example: g
+        images:
+          type: array
+          description: Product image URLs
+          items:
+            type: string
+            format: uri
+          example:
+            - https://images.cdn.europe-west1.gcp.commercetools.com/1df039f1-4705-4f79-aa90-cf907a6ec063/82-237136.jpg
+        productMarketing:
+          type: string
+          nullable: true
+          description: Marketing text for product
+          example: Francouzská klasika z českých surovin
+        brandMarketing:
+          type: string
+          nullable: true
+          description: Marketing text for brand
+        published:
+          type: boolean
+          description: Whether product is published
+          example: true
+        medical:
+          type: boolean
+          description: Whether product is medical/pharmaceutical
+          example: false
+        weightArticle:
+          type: boolean
+          description: Whether product is sold by weight
+          example: false
+        scrapedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When product was scraped
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When product was last updated
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Internal category ID
+          example: 1
+        key:
+          type: string
+          description: External category key
+          example: '1165'
+        name:
+          type: string
+          description: Category name
+          example: Ovoce a zelenina
+        slug:
+          type: string
+          description: URL-friendly identifier
+          example: ovoce-a-zelenina-1165
+        orderHint:
+          type: string
+          description: Sort order hint
+          example: '000000010'
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When category was created
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When category was last updated
+
+    CategoryWithCount:
+      allOf:
+        - $ref: '#/components/schemas/Category'
+        - type: object
+          properties:
+            productCount:
+              type: integer
+              description: Number of products in this category
+              example: 182
+
+    ProductWithCategories:
+      allOf:
+        - $ref: '#/components/schemas/Product'
+        - type: object
+          properties:
+            categories:
+              type: array
+              description: Categories this product belongs to
+              items:
+                $ref: '#/components/schemas/Category'
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page number (1-based)
+          example: 1
+        limit:
+          type: integer
+          description: Items per page
+          example: 30
+        total:
+          type: integer
+          description: Total number of items
+          example: 182
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 7
+
+    PaginatedProductResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductWithCategories'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    CategoryProductsResponse:
+      type: object
+      properties:
+        category:
+          allOf:
+            - $ref: '#/components/schemas/Category'
+            - nullable: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductWithCategories'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: Product not found
