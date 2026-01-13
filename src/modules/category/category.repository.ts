@@ -53,7 +53,7 @@ export const upsertCategory = async (data: NewCategory): Promise<Category> => {
       .update(categories)
       .set({
         ...data,
-        updatedAt: sql`(CURRENT_TIMESTAMP)`,
+        updatedAt: new Date(),
       })
       .where(eq(categories.key, data.key as string))
       .returning();

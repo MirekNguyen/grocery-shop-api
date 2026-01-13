@@ -47,7 +47,7 @@ export const upsertProduct = async (data: NewProduct): Promise<Product> => {
       .update(products)
       .set({
         ...data,
-        updatedAt: sql`(CURRENT_TIMESTAMP)`,
+        updatedAt: new Date(),
       })
       .where(eq(products.productId, data.productId as string))
       .returning();
