@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "bun run src/index.ts",
+    "start": "bun run src/api.ts",
     "dev": "bun run src/index.ts",
     "api": "bun run --watch src/api.ts",
     "db:generate": "drizzle-kit generate",
