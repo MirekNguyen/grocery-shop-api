@@ -1,5 +1,27 @@
 # Shop Scraper
 
+A Bun-based web scraper for Billa and Foodora products with database storage and search capabilities.
+
+## Projects
+
+This repository contains **two separate scrapers**:
+
+### 1. Billa Scraper
+- PostgreSQL database with Drizzle ORM
+- Meilisearch integration
+- RESTful API
+- See below for details
+
+### 2. Foodora Scraper (GraphQL)
+- Modular TypeScript architecture
+- Zod validation
+- Category-based scraping
+- **📖 [Full Documentation](./docs/FOODORA-README.md)**
+
+---
+
+## Billa Scraper
+
 A Bun-based web scraper for Billa shop products using **PostgreSQL**, **Drizzle ORM**, and **Meilisearch**.
 
 ## Tech Stack
