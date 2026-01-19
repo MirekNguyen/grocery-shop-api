@@ -110,3 +110,59 @@ export const getCategoryCount = async (): Promise<number> => {
   const result = await db.select({ count: sql<number>`count(*)` }).from(categories);
   return result[0].count;
 };
+
+/**
+ * Gets all descendant category keys for a given category (including the category itself).
+ * This is used to query products that belong to a category or any of its subcategories.
+ */
+export const getAllDescendantCategoryKeys = async (categoryKey: string): Promise<string[]> => {
+  const category = await findCategoryByKey(categoryKey);
+  
+  if (!category) {
+    return [];
+  }
+  
+  const keys: string[] = [categoryKey];
+  
+  const getChildrenKeys = async (parentId: number): Promise<void> => {
+    const children = await getChildCategories(parentId);
+    
+    for (const child of children) {
+      keys.push(child.key);
+      // Recursively get children of children
+      await getChildrenKeys(child.id);
+    }
+  };
+  
+  await getChildrenKeys(category.id);
+  
+  return keys;
+};
+
+/**
+ * Gets all descendant category slugs for a given category slug (including the category itself).
+ * This is used to query products that belong to a category or any of its subcategories.
+ */
+export const getAllDescendantCategorySlugs = async (categorySlug: string): Promise<string[]> => {
+  const category = await findCategoryBySlug(categorySlug);
+  
+  if (!category) {
+    return [];
+  }
+  
+  const slugs: string[] = [categorySlug];
+  
+  const getChildrenSlugs = async (parentId: number): Promise<void> => {
+    const children = await getChildCategories(parentId);
+    
+    for (const child of children) {
+      slugs.push(child.slug);
+      // Recursively get children of children
+      await getChildrenSlugs(child.id);
+    }
+  };
+  
+  await getChildrenSlugs(category.id);
+  
+  return slugs;
+};

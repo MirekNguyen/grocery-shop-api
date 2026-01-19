@@ -1,6 +1,7 @@
 import * as ProductRepository from './product.repository';
 import * as ProductQueries from './product.queries';
 import * as ProductMeiliService from './product.meilisearch.service';
+import * as CategoryRepository from '../category/category.repository';
 import type { Product } from './product.schema';
 
 export interface ProductFilters {
@@ -62,9 +63,12 @@ export const getProducts = async (
       products = [];
     }
   } else if (category) {
-    // Apply category filter without search
+    // Get all descendant category keys (includes parent + all subcategories)
+    const categoryKeys = await CategoryRepository.getAllDescendantCategoryKeys(category);
+    
+    // Apply category filter - include products from parent category and all subcategories
     products = products.filter((p) =>
-      p.categories.some((c) => c.slug === category)
+      p.categories.some((c) => categoryKeys.includes(c.key))
     );
   }
 

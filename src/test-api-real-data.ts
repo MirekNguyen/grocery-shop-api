@@ -10,10 +10,10 @@ const main = async (): Promise<void> => {
   console.log("=" .repeat(80));
 
   try {
-    console.log("\n1️⃣  Calling API endpoint for FOODORA_DMART store...");
-    const apiResponse = await CategoryController.getCategories("FOODORA_DMART");
+    console.log("\n1️⃣  Calling API endpoint for FOODORA_BILLA_PROSEK store...");
+    const apiResponse = await CategoryController.getCategories("FOODORA_BILLA_PROSEK");
 
-    const foodoraCategories = apiResponse.FOODORA_DMART || [];
+    const foodoraCategories = apiResponse.FOODORA_BILLA_PROSEK || [];
     
     console.log(`   ✅ Found ${foodoraCategories.length} root categories`);
 
