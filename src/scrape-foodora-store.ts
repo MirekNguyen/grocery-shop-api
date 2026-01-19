@@ -6,6 +6,7 @@
 import { scrapeAllFoodoraCategories } from "./modules/foodora-scraper/foodora-scraper-db.service.ts";
 import { STORE_TYPES, FOODORA_VENDOR_CODES } from "./modules/product/product.types.ts";
 import { FOODORA_CATEGORIES_FULL } from "./foodora-categories-full.ts";
+import { FOODORA_CATEGORIES_ALBERT } from "./foodora-categories-albert.ts";
 
 // Store configuration
 const STORE_CONFIG: Record<string, { 
@@ -24,7 +25,7 @@ const STORE_CONFIG: Record<string, {
     name: "Albert - Praha Florenc",
     vendorCode: FOODORA_VENDOR_CODES.ALBERT_FLORENC,
     storeCode: 'foodora-albert-florenc',
-    categories: FOODORA_CATEGORIES_FULL, // Will update when Albert categories are available
+    categories: FOODORA_CATEGORIES_ALBERT,
   },
   [STORE_TYPES.FOODORA_DMART]: {
     name: "D-Mart",
