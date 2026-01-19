@@ -1,7 +1,7 @@
 /**
  * Foodora Scraper CLI - Database Integration
  * Scrapes Foodora products and saves directly to PostgreSQL database
- * Uses default store (FOODORA_DMART)
+ * Default: FOODORA_BILLA_PROSEK (the main grocery store)
  */
 
 import { scrapeAllFoodoraCategories } from "./modules/foodora-scraper/foodora-scraper-db.service.ts";
@@ -11,25 +11,28 @@ const main = async (): Promise<void> => {
   console.log("\n" + "=" .repeat(80));
   console.log("🛒 FOODORA SCRAPER - DATABASE INTEGRATION");
   console.log("=" .repeat(80));
-  console.log(`Default Store: ${STORE_TYPES.FOODORA_DMART}`);
+  console.log(`Default Store: ${STORE_TYPES.FOODORA_BILLA_PROSEK} (BILLA Praha Prosek)`);
   console.log("This script will:");
-  console.log("  1. Fetch all products from Foodora (22 parent categories)");
+  console.log("  1. Fetch all products from Foodora BILLA (22 parent categories)");
   console.log("  2. Save products to PostgreSQL database");
-  console.log(`  3. Mark all products with store='${STORE_TYPES.FOODORA_DMART}'`);
+  console.log(`  3. Mark all products with store='${STORE_TYPES.FOODORA_BILLA_PROSEK}'`);
   console.log("  4. Link products to their categories");
-  console.log("\nTo scrape other stores, use: bun src/scrape-foodora-store.ts --store=<code>");
+  console.log("\nTo scrape other stores:");
+  console.log(`  bun src/scrape-foodora-store.ts --store=${STORE_TYPES.FOODORA_ALBERT_FLORENC}`);
+  console.log(`  bun src/scrape-foodora-store.ts --store=${STORE_TYPES.FOODORA_DMART}`);
   console.log("=" .repeat(80) + "\n");
 
   try {
     await scrapeAllFoodoraCategories(
-      STORE_TYPES.FOODORA_DMART,
-      FOODORA_VENDOR_CODES.DMART,
-      'foodora-dmart'
+      STORE_TYPES.FOODORA_BILLA_PROSEK,
+      FOODORA_VENDOR_CODES.BILLA_PROSEK,
+      'foodora-billa-prosek'
     );
     
     console.log("\n✨ Foodora scraping complete!");
     console.log("You can now query products via API:");
-    console.log(`  GET /api/products?store=${STORE_TYPES.FOODORA_DMART}`);
+    console.log(`  GET /api/products?store=${STORE_TYPES.FOODORA_BILLA_PROSEK}`);
+    console.log(`  GET /api/products?store=${STORE_TYPES.FOODORA_ALBERT_FLORENC}`);
     console.log(`  GET /api/products?store=${STORE_TYPES.BILLA}`);
     console.log("  GET /api/products (all stores)\n");
   } catch (error) {
