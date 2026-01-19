@@ -63,8 +63,11 @@ export const indexProduct = async (product: Product & { categories?: any[] }) =>
   try {
     const index = meiliClient.index(PRODUCTS_INDEX);
     
-    // Extract category keys for hierarchical filtering
+    // Extract both category keys and slugs for flexible filtering
     const categoryKeys = product.categories?.map(c => c.key) || [];
+    const categorySlugs = product.categories?.map(c => c.slug) || [];
+    // Combine both for flexible filtering
+    const categoryIdentifiers = [...categoryKeys, ...categorySlugs];
     
     // Prepare document for indexing
     const document = {
@@ -79,7 +82,7 @@ export const indexProduct = async (product: Product & { categories?: any[] }) =>
       descriptionLong: product.descriptionLong,
       category: product.category,
       categorySlug: product.categorySlug,
-      categoryKeys: categoryKeys,
+      categoryKeys: categoryIdentifiers, // Now includes both keys and slugs
       price: product.price,
       pricePerUnit: product.pricePerUnit,
       inPromotion: product.inPromotion,
@@ -105,8 +108,11 @@ export const indexProducts = async (products: (Product & { categories?: any[] })
     const index = meiliClient.index(PRODUCTS_INDEX);
     
     const documents = products.map(product => {
-      // Extract category keys for hierarchical filtering
+      // Extract both category keys and slugs for flexible filtering
       const categoryKeys = product.categories?.map(c => c.key) || [];
+      const categorySlugs = product.categories?.map(c => c.slug) || [];
+      // Combine both for flexible filtering
+      const categoryIdentifiers = [...categoryKeys, ...categorySlugs];
       
       return {
         id: product.id,
@@ -120,7 +126,7 @@ export const indexProducts = async (products: (Product & { categories?: any[] })
         descriptionLong: product.descriptionLong,
         category: product.category,
         categorySlug: product.categorySlug,
-        categoryKeys: categoryKeys,
+        categoryKeys: categoryIdentifiers, // Now includes both keys and slugs
         price: product.price,
         pricePerUnit: product.pricePerUnit,
         inPromotion: product.inPromotion,

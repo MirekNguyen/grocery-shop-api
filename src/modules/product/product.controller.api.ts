@@ -49,14 +49,30 @@ export const getProducts = async (
   
   // Filter by category (including all subcategories)
   if (category) {
-    // Get all descendant category keys (includes parent + all subcategories)
-    const categoryKeys = await CategoryRepository.getAllDescendantCategoryKeys(category);
+    // Try to get descendant keys first, then try slugs
+    let categoryIdentifiers = await CategoryRepository.getAllDescendantCategoryKeys(category);
     
-    if (categoryKeys.length > 0) {
-      // Use OR filter to match any of the category keys
-      const categoryFilter = categoryKeys.map(key => `categoryKeys = "${key}"`).join(' OR ');
-      meiliFilters.push(`(${categoryFilter})`);
+    if (categoryIdentifiers.length === 0) {
+      // Not found by key, try by slug
+      categoryIdentifiers = await CategoryRepository.getAllDescendantCategorySlugs(category);
+      
+      if (categoryIdentifiers.length === 0) {
+        // Category doesn't exist - return empty results
+        return {
+          data: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
     }
+    
+    // Use OR filter to match any of the category identifiers (keys or slugs)
+    const categoryFilter = categoryIdentifiers.map(id => `categoryKeys = "${id}"`).join(' OR ');
+    meiliFilters.push(`(${categoryFilter})`);
   }
   
   // Filter by promotion status
