@@ -7,6 +7,7 @@ import { fetchCategoryProducts } from "./foodora-category-api.service.ts";
 import { saveFoodoraCategoryProducts } from "./foodora-db.service.ts";
 import { FOODORA_CATEGORIES_FULL } from "../../foodora-categories-full.ts";
 import type { CategoryDefinition } from "./foodora-category.types.ts";
+import { FOODORA_VENDOR_TYPES } from "../product/product.types.ts";
 import * as ProductRepository from "../product/product.repository.ts";
 import * as CategoryRepository from "../category/category.repository.ts";
 
@@ -19,12 +20,13 @@ const delay = (ms: number): Promise<void> =>
  * Scrapes products from a single Foodora parent category and saves to database
  */
 export const scrapeFoodoraCategory = async (
-  category: CategoryDefinition
+  category: CategoryDefinition,
+  vendor: string = FOODORA_VENDOR_TYPES.DMART
 ): Promise<number> => {
-  console.log(`\n🔍 Scraping Foodora category: ${category.name} (${category.id})`);
+  console.log(`\n🔍 Scraping Foodora category: ${category.name} (${category.id}) [Vendor: ${vendor}]`);
 
   try {
-    const response = await fetchCategoryProducts(category.id);
+    const response = await fetchCategoryProducts(category.id, vendor);
     const categoryProducts = response.data.categoryProductList.categoryProducts;
 
     if (!categoryProducts) {
@@ -43,7 +45,8 @@ export const scrapeFoodoraCategory = async (
       const savedCount = await saveFoodoraCategoryProducts(
         subcategoryGroup.id,
         subcategoryGroup.name,
-        subcategoryGroup.items
+        subcategoryGroup.items,
+        vendor
       );
 
       totalSaved += savedCount;
@@ -63,26 +66,30 @@ export const scrapeFoodoraCategory = async (
 /**
  * Scrapes all Foodora categories and saves to database
  */
-export const scrapeAllFoodoraCategories = async (): Promise<void> => {
+export const scrapeAllFoodoraCategories = async (
+  vendor: string = FOODORA_VENDOR_TYPES.DMART,
+  categories: CategoryDefinition[] = FOODORA_CATEGORIES_FULL
+): Promise<void> => {
   console.log("\n🛒 Starting Foodora Scraper (Database Integration)");
   console.log("=" .repeat(80));
-  console.log(`Total parent categories: ${FOODORA_CATEGORIES_FULL.length}`);
+  console.log(`Vendor: ${vendor}`);
+  console.log(`Total parent categories: ${categories.length}`);
   console.log(`Delay between requests: ${DELAY_MS}ms`);
   console.log("=" .repeat(80) + "\n");
 
   let totalProducts = 0;
 
-  for (let i = 0; i < FOODORA_CATEGORIES_FULL.length; i++) {
-    const category = FOODORA_CATEGORIES_FULL[i]!;
-    const progress = `[${i + 1}/${FOODORA_CATEGORIES_FULL.length}]`;
+  for (let i = 0; i < categories.length; i++) {
+    const category = categories[i]!;
+    const progress = `[${i + 1}/${categories.length}]`;
 
     console.log(`${progress} Processing: ${category.name}...`);
 
-    const count = await scrapeFoodoraCategory(category);
+    const count = await scrapeFoodoraCategory(category, vendor);
     totalProducts += count;
 
     // Rate limiting delay
-    if (i < FOODORA_CATEGORIES_FULL.length - 1) {
+    if (i < categories.length - 1) {
       await delay(DELAY_MS);
     }
   }
@@ -105,9 +112,10 @@ export const scrapeAllFoodoraCategories = async (): Promise<void> => {
  * Scrapes a specific list of Foodora categories
  */
 export const scrapeFoodoraCategories = async (
-  categories: CategoryDefinition[]
+  categories: CategoryDefinition[],
+  vendor: string = FOODORA_VENDOR_TYPES.DMART
 ): Promise<number> => {
-  console.log(`\n🛒 Scraping ${categories.length} Foodora categories...`);
+  console.log(`\n🛒 Scraping ${categories.length} Foodora categories (Vendor: ${vendor})...`);
   console.log("=" .repeat(80) + "\n");
 
   let totalProducts = 0;
@@ -118,7 +126,7 @@ export const scrapeFoodoraCategories = async (
 
     console.log(`${progress} Processing: ${category.name}...`);
 
-    const count = await scrapeFoodoraCategory(category);
+    const count = await scrapeFoodoraCategory(category, vendor);
     totalProducts += count;
 
     // Rate limiting delay

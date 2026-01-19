@@ -26,11 +26,24 @@ const IMPORTANT_CATEGORY_SLUGS = [
 /**
  * Get all categories with product counts (filtered to important categories only)
  */
-export const getCategories = async (): Promise<
+export const getCategories = async (
+  store?: string,
+  vendor?: string
+): Promise<
   (Category & { productCount: number })[]
 > => {
   const categories = await CategoryRepository.findAllCategories();
-  const productsWithCategories = await ProductQueries.findAllProductsWithCategories();
+  let productsWithCategories = await ProductQueries.findAllProductsWithCategories();
+
+  // Filter products by store if specified
+  if (store) {
+    productsWithCategories = productsWithCategories.filter((p) => p.store === store);
+  }
+
+  // Filter products by vendor if specified
+  if (vendor) {
+    productsWithCategories = productsWithCategories.filter((p) => p.vendor === vendor);
+  }
 
   // Filter to only important categories
   const importantCategories = categories.filter((cat) =>
@@ -65,7 +78,9 @@ export const getCategoryBySlug = async (
 export const getProductsByCategory = async (
   slug: string,
   page: number = 1,
-  limit: number = 30
+  limit: number = 30,
+  store?: string,
+  vendor?: string
 ): Promise<{
   category: Category | null;
   data: (Product & { categories: any[] })[];
@@ -86,7 +101,18 @@ export const getProductsByCategory = async (
     };
   }
 
-  const allProducts = await ProductQueries.findAllProductsWithCategories();
+  let allProducts = await ProductQueries.findAllProductsWithCategories();
+  
+  // Filter by store if specified
+  if (store) {
+    allProducts = allProducts.filter((p) => p.store === store);
+  }
+  
+  // Filter by vendor if specified
+  if (vendor) {
+    allProducts = allProducts.filter((p) => p.vendor === vendor);
+  }
+  
   const categoryProducts = allProducts.filter((p) =>
     p.categories.some((c) => c.slug === slug)
   );

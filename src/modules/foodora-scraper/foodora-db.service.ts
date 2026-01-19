@@ -18,7 +18,8 @@ export const mapFoodoraProductToDb = (
   product: CategoryProductItem,
   categoryId: string,
   categoryName: string,
-  categorySlug: string
+  categorySlug: string,
+  vendor: string
 ): NewProduct => {
   // Extract base unit from attributes
   const baseUnitAttr = product.attributes?.find((attr) => attr.key === "baseUnit");
@@ -29,6 +30,7 @@ export const mapFoodoraProductToDb = (
 
   return {
     store: STORE_TYPES.FOODORA,
+    vendor,
     
     // Product identifiers
     productId: product.productID,
@@ -101,7 +103,8 @@ export const mapFoodoraProductToDb = (
  */
 export const saveFoodoraCategory = async (
   categoryId: string,
-  categoryName: string
+  categoryName: string,
+  vendor: string
 ): Promise<number> => {
   const categorySlug = categoryName
     .toLowerCase()
@@ -109,9 +112,9 @@ export const saveFoodoraCategory = async (
     .replace(/[^a-z0-9-]/g, "");
 
   const newCategory: NewCategory = {
-    key: `foodora-${categoryId}`,
+    key: `foodora-${vendor}-${categoryId}`,
     name: categoryName,
-    slug: `foodora-${categorySlug}`,
+    slug: `foodora-${vendor}-${categorySlug}`,
     orderHint: null,
   };
 
@@ -125,7 +128,8 @@ export const saveFoodoraCategory = async (
 export const saveFoodoraProduct = async (
   product: CategoryProductItem,
   categoryId: string,
-  categoryName: string
+  categoryName: string,
+  vendor: string
 ): Promise<void> => {
   const categorySlug = categoryName
     .toLowerCase()
@@ -133,14 +137,15 @@ export const saveFoodoraProduct = async (
     .replace(/[^a-z0-9-]/g, "");
 
   // Save category first
-  const dbCategoryId = await saveFoodoraCategory(categoryId, categoryName);
+  const dbCategoryId = await saveFoodoraCategory(categoryId, categoryName, vendor);
 
   // Map and save product
   const dbProduct = mapFoodoraProductToDb(
     product,
     categoryId,
     categoryName,
-    `foodora-${categorySlug}`
+    `foodora-${vendor}-${categorySlug}`,
+    vendor
   );
 
   const savedProduct = await ProductRepository.upsertProduct(dbProduct);
@@ -157,13 +162,14 @@ export const saveFoodoraProduct = async (
 export const saveFoodoraCategoryProducts = async (
   categoryId: string,
   categoryName: string,
-  products: CategoryProductItem[]
+  products: CategoryProductItem[],
+  vendor: string
 ): Promise<number> => {
   let savedCount = 0;
 
   for (const product of products) {
     try {
-      await saveFoodoraProduct(product, categoryId, categoryName);
+      await saveFoodoraProduct(product, categoryId, categoryName, vendor);
       savedCount++;
     } catch (error) {
       console.error(

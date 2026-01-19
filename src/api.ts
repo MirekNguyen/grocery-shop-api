@@ -25,6 +25,7 @@ const app = new Elysia()
       limit: query.limit ? parseInt(query.limit as string) : 30,
       inPromotion: query.inPromotion === 'true' ? true : undefined,
       store: query.store as string | undefined,
+      vendor: query.vendor as string | undefined,
     };
 
     return await ProductController.getProducts(filters);
@@ -62,8 +63,10 @@ const app = new Elysia()
   })
 
   // Categories endpoints
-  .get('/api/categories', async () => {
-    return await CategoryController.getCategories();
+  .get('/api/categories', async ({ query }) => {
+    const store = query.store as string | undefined;
+    const vendor = query.vendor as string | undefined;
+    return await CategoryController.getCategories(store, vendor);
   })
 
   .get('/api/categories/:slug', async ({ params, error }) => {
@@ -79,11 +82,15 @@ const app = new Elysia()
   .get('/api/categories/:slug/products', async ({ params, query, error }) => {
     const page = query.page ? parseInt(query.page as string) : 1;
     const limit = query.limit ? parseInt(query.limit as string) : 30;
+    const store = query.store as string | undefined;
+    const vendor = query.vendor as string | undefined;
 
     const result = await CategoryController.getProductsByCategory(
       params.slug,
       page,
-      limit
+      limit,
+      store,
+      vendor
     );
 
     if (!result.category) {

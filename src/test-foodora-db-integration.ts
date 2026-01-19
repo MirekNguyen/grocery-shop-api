@@ -4,12 +4,14 @@
  */
 
 import { scrapeFoodoraCategory } from "./modules/foodora-scraper/foodora-scraper-db.service.ts";
+import { FOODORA_VENDOR_TYPES } from "./modules/product/product.types.ts";
 import * as ProductRepository from "./modules/product/product.repository.ts";
 
 const main = async (): Promise<void> => {
   console.log("\n🧪 Testing Foodora Database Integration");
   console.log("=" .repeat(80));
   console.log("This will scrape ONE category and save to database");
+  console.log(`Vendor: D-Mart (${FOODORA_VENDOR_TYPES.DMART})`);
   console.log("=" .repeat(80) + "\n");
 
   // Test category: "Maso a uzeniny" (Meat and Sausages)
@@ -25,8 +27,8 @@ const main = async (): Promise<void> => {
     const countBefore = await ProductRepository.getProductCount();
     console.log(`  Total products in DB: ${countBefore}\n`);
 
-    // Scrape the category
-    const savedCount = await scrapeFoodoraCategory(testCategory);
+    // Scrape the category with default vendor
+    const savedCount = await scrapeFoodoraCategory(testCategory, FOODORA_VENDOR_TYPES.DMART);
 
     console.log("\nAfter scraping:");
     const countAfter = await ProductRepository.getProductCount();
@@ -43,7 +45,7 @@ const main = async (): Promise<void> => {
     // Show sample Foodora products
     console.log("Sample Foodora products from database:");
     console.log("(Run this query to see them)");
-    console.log('  SELECT name, price, store FROM products WHERE store = \'FOODORA\' LIMIT 5;\n');
+    console.log(`  SELECT name, price, store, vendor FROM products WHERE store = 'FOODORA' AND vendor = '${FOODORA_VENDOR_TYPES.DMART}' LIMIT 5;\n`);
 
   } catch (error) {
     console.error("\n❌ Test FAILED:", error);
