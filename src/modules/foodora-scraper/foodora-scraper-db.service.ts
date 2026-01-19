@@ -4,7 +4,7 @@
  */
 
 import { fetchCategoryProducts } from "./foodora-category-api.service.ts";
-import { saveFoodoraCategoryProducts } from "./foodora-db.service.ts";
+import { saveFoodoraCategoryProducts, saveFoodoraCategory } from "./foodora-db.service.ts";
 import { FOODORA_CATEGORIES_FULL } from "../../foodora-categories-full.ts";
 import type { CategoryDefinition } from "./foodora-category.types.ts";
 import { STORE_TYPES, FOODORA_VENDOR_CODES } from "../product/product.types.ts";
@@ -15,6 +15,33 @@ const DELAY_MS = 500; // 500ms delay between requests (rate limiting)
 
 const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Recursively saves category hierarchy from CategoryDefinition
+ * This saves the structure defined in FOODORA_CATEGORIES_FULL (parent -> children)
+ */
+const saveCategoryHierarchy = async (
+  category: CategoryDefinition,
+  storeCode: string,
+  parentDbId?: number
+): Promise<number> => {
+  // Save the current category
+  const categoryDbId = await saveFoodoraCategory(
+    category.id,
+    category.name,
+    storeCode,
+    parentDbId
+  );
+
+  // Recursively save children if they exist
+  if (category.children && category.children.length > 0) {
+    for (const child of category.children) {
+      await saveCategoryHierarchy(child, storeCode, categoryDbId);
+    }
+  }
+
+  return categoryDbId;
+};
 
 /**
  * Scrapes products from a single Foodora parent category and saves to database
@@ -28,6 +55,15 @@ export const scrapeFoodoraCategory = async (
   console.log(`\n🔍 Scraping category: ${category.name} (${category.id}) [Store: ${store}]`);
 
   try {
+    // Save the entire category hierarchy first (parent + children from CategoryDefinition)
+    const parentCategoryDbId = await saveCategoryHierarchy(category, storeCode);
+    console.log(`  📁 Saved category hierarchy: ${category.name} (DB ID: ${parentCategoryDbId})`);
+    
+    if (category.children && category.children.length > 0) {
+      console.log(`     ├── Saved ${category.children.length} predefined subcategories from CategoryDefinition`);
+    }
+
+    // Now fetch and scrape products from the API
     const response = await fetchCategoryProducts(category.id, vendorCode);
     const categoryProducts = response.data.categoryProductList.categoryProducts;
 
@@ -38,10 +74,19 @@ export const scrapeFoodoraCategory = async (
 
     let totalSaved = 0;
 
-    // Each parent category returns multiple subcategory groups
+    // Each parent category returns multiple subcategory groups from API
+    // These might be different from or additional to the children in CategoryDefinition
     for (const subcategoryGroup of categoryProducts) {
       console.log(
-        `  📦 Saving subcategory: ${subcategoryGroup.name} (${subcategoryGroup.items.length} products)`
+        `  📦 Saving products for subcategory: ${subcategoryGroup.name} (${subcategoryGroup.items.length} products)`
+      );
+
+      // Save or update subcategory from API response (might already exist from CategoryDefinition)
+      const subcategoryDbId = await saveFoodoraCategory(
+        subcategoryGroup.id,
+        subcategoryGroup.name,
+        storeCode,
+        parentCategoryDbId
       );
 
       const savedCount = await saveFoodoraCategoryProducts(
@@ -53,7 +98,7 @@ export const scrapeFoodoraCategory = async (
       );
 
       totalSaved += savedCount;
-      console.log(`     ✅ Saved ${savedCount}/${subcategoryGroup.items.length} products`);
+      console.log(`     ✅ Saved ${savedCount}/${subcategoryGroup.items.length} products (Subcategory DB ID: ${subcategoryDbId})`);
     }
 
     console.log(

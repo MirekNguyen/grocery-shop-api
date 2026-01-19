@@ -43,6 +43,46 @@ export const getAllCategories = async (): Promise<Category[]> => {
 };
 
 /**
+ * Gets all root categories (categories without a parent).
+ */
+export const getRootCategories = async (): Promise<Category[]> => {
+  return await db.query.categories.findMany({
+    where: sql`${categories.parentId} IS NULL`,
+    orderBy: categories.orderHint,
+  });
+};
+
+/**
+ * Gets child categories by parent ID.
+ */
+export const getChildCategories = async (parentId: number): Promise<Category[]> => {
+  return await db.query.categories.findMany({
+    where: eq(categories.parentId, parentId),
+    orderBy: categories.orderHint,
+  });
+};
+
+/**
+ * Gets a category with its children.
+ */
+export const getCategoryWithChildren = async (id: number): Promise<(Category & { children: Category[] }) | null> => {
+  const category = await db.query.categories.findFirst({
+    where: eq(categories.id, id),
+  });
+  
+  if (!category) {
+    return null;
+  }
+  
+  const children = await getChildCategories(id);
+  
+  return {
+    ...category,
+    children,
+  };
+};
+
+/**
  * Updates a category or inserts if it doesn't exist (upsert by key).
  */
 export const upsertCategory = async (data: NewCategory): Promise<Category> => {

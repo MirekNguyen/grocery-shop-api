@@ -40,7 +40,11 @@ const getCategoryStore = (slug: string): string => {
   return 'BILLA';
 };
 
-type CategoryWithCount = Category & { productCount: number; store: string };
+type CategoryWithCount = Category & { 
+  productCount: number; 
+  store: string;
+  subcategories?: CategoryWithCount[];
+};
 
 type CategoriesByStore = {
   [store: string]: CategoryWithCount[];
@@ -52,7 +56,7 @@ type CategoriesByStore = {
 export const getCategories = async (
   store?: string
 ): Promise<CategoriesByStore> => {
-  const categories = await CategoryRepository.findAllCategories();
+  const allCategories = await CategoryRepository.findAllCategories();
   let productsWithCategories = await ProductQueries.findAllProductsWithCategories();
 
   // Filter products by store if specified
@@ -60,10 +64,22 @@ export const getCategories = async (
     productsWithCategories = productsWithCategories.filter((p) => p.store === store);
   }
 
-  // Group categories by store
+  // Separate root categories and child categories
+  const rootCategories = allCategories.filter((cat) => cat.parentId === null);
+  const childCategoriesMap = new Map<number, Category[]>();
+  
+  for (const category of allCategories) {
+    if (category.parentId !== null) {
+      const children = childCategoriesMap.get(category.parentId) || [];
+      children.push(category);
+      childCategoriesMap.set(category.parentId, children);
+    }
+  }
+
+  // Build category tree with product counts
   const categoriesByStore: CategoriesByStore = {};
 
-  for (const category of categories) {
+  for (const category of rootCategories) {
     const categoryStore = getCategoryStore(category.slug);
     
     // If store filter is applied, skip categories from other stores
@@ -73,13 +89,28 @@ export const getCategories = async (
 
     // Count products in this category (from the filtered products)
     const productCount = productsWithCategories.filter((p) =>
-      p.categories.some((c) => c.id === category.id)
+      p.categories.some((c: { id: number }) => c.id === category.id)
     ).length;
+
+    // Get subcategories with product counts
+    const childCategories = childCategoriesMap.get(category.id) || [];
+    const subcategories: CategoryWithCount[] = childCategories.map((child) => {
+      const childProductCount = productsWithCategories.filter((p) =>
+        p.categories.some((c: { id: number }) => c.id === child.id)
+      ).length;
+
+      return {
+        ...child,
+        productCount: childProductCount,
+        store: categoryStore,
+      };
+    });
 
     const categoryWithCount: CategoryWithCount = {
       ...category,
       productCount,
       store: categoryStore,
+      subcategories: subcategories.length > 0 ? subcategories : undefined,
     };
 
     if (!categoriesByStore[categoryStore]) {
@@ -98,7 +129,8 @@ export const getCategories = async (
 export const getCategoryBySlug = async (
   slug: string
 ): Promise<Category | null> => {
-  return await CategoryRepository.findCategoryBySlug(slug);
+  const category = await CategoryRepository.findCategoryBySlug(slug);
+  return category ?? null;
 };
 
 /**
@@ -137,7 +169,7 @@ export const getProductsByCategory = async (
   }
   
   const categoryProducts = allProducts.filter((p) =>
-    p.categories.some((c) => c.slug === slug)
+    p.categories.some((c: { slug: string }) => c.slug === slug)
   );
 
   const total = categoryProducts.length;

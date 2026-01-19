@@ -6,9 +6,13 @@ This document provides coding standards, commands, and best practices for AI cod
 
 **Always use Bun instead of Node.js**. This project is built with Bun runtime.
 
+**Shell Environment**: This project uses Fish shell. Tools like `bun`, `git`, and other installed binaries are available globally in the Fish shell PATH and can be invoked directly.
+
 ### Common Commands
 
-```bash
+All commands below work identically in Fish shell:
+
+```fish
 # Run TypeScript files directly
 bun <file.ts>
 
@@ -29,7 +33,7 @@ bunx <package> <command>
 
 ### Testing
 
-```bash
+```fish
 # Run all tests
 bun test
 
@@ -45,7 +49,7 @@ bun test --watch
 
 ### Building
 
-```bash
+```fish
 # Build TypeScript/HTML/CSS files
 bun build <file.ts|file.html|file.css>
 
@@ -55,7 +59,7 @@ bun build ./index.ts --outdir ./dist --target browser
 
 ### Type Checking
 
-```bash
+```fish
 # Type check without emitting
 bunx tsc --noEmit
 ```
@@ -407,6 +411,26 @@ type User = {
 
 ### Environment Variables
 
+**This project uses Fish shell.** Environment variables are set differently than Bash.
+
+```fish
+# Fish shell - Set environment variable for current session
+set -x API_KEY "your-api-key"
+
+# Fish shell - Set environment variable permanently
+set -Ux API_KEY "your-api-key"
+
+# Fish shell - Read from .env file (requires fisher + dotenv plugin)
+# Install: fisher install edc/bass
+# Then use bass to source .env files
+bass source .env
+```
+
+```bash
+# Bash/Zsh - For reference only (DO NOT USE)
+export API_KEY="your-api-key"
+```
+
 ```typescript
 // ✅ Bun auto-loads .env files
 const apiKey = process.env.API_KEY;
@@ -417,8 +441,31 @@ import "dotenv/config"; // Unnecessary with Bun
 
 ### Shell Commands
 
+**Fish shell syntax differs from Bash. Use Fish-compatible commands.**
+
+```fish
+# Fish shell - Set variable
+set myvar "value"
+
+# Fish shell - List files
+ls -la
+
+# Fish shell - Command substitution
+set output (ls -la)
+
+# Fish shell - Conditionals
+if test -f file.txt
+    echo "File exists"
+end
+
+# Fish shell - Loops
+for file in *.ts
+    echo $file
+end
+```
+
 ```typescript
-// ✅ Use Bun.$ for shell commands
+// ✅ Use Bun.$ for shell commands (cross-platform)
 const output = await Bun.$`ls -la`.text();
 
 // ❌ Avoid child_process or execa

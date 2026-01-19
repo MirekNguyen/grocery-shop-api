@@ -98,11 +98,17 @@ export const mapFoodoraProductToDb = (
 
 /**
  * Saves a Foodora category to the database
+ * @param categoryId - The Foodora category ID
+ * @param categoryName - The category name
+ * @param storeCode - The store code (e.g., 'foodora-dmart')
+ * @param parentCategoryId - Optional parent category database ID
+ * @returns The database category ID
  */
 export const saveFoodoraCategory = async (
   categoryId: string,
   categoryName: string,
-  storeCode: string
+  storeCode: string,
+  parentCategoryId?: number
 ): Promise<number> => {
   const categorySlug = categoryName
     .toLowerCase()
@@ -114,6 +120,7 @@ export const saveFoodoraCategory = async (
     name: categoryName,
     slug: `${storeCode}-${categorySlug}`,
     orderHint: null,
+    parentId: parentCategoryId ?? null,
   };
 
   const savedCategory = await CategoryRepository.upsertCategory(newCategory);
