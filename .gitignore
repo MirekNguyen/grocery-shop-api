@@ -5,3 +5,16 @@ node_modules
 drizzle
 .env
 dist
+
+# Output files
+output/
+*.json.bak
+product-*.json
+category-*.json
+scraped-categories/
+scrape-progress.json
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
