@@ -19,6 +19,19 @@ export {
 } from "./foodora-category-scraper.service.ts";
 export { fetchCategoryProducts } from "./foodora-category-api.service.ts";
 
+// Database Integration Services
+export {
+  scrapeAllFoodoraCategories,
+  scrapeFoodoraCategories,
+  scrapeFoodoraCategory,
+} from "./foodora-scraper-db.service.ts";
+export {
+  mapFoodoraProductToDb,
+  saveFoodoraProduct,
+  saveFoodoraCategoryProducts,
+  saveFoodoraCategory,
+} from "./foodora-db.service.ts";
+
 // Product Types
 export type {
   Product,
