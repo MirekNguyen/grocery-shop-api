@@ -76,6 +76,18 @@ export const getCategories = async (
     }
   }
 
+  // Helper function to get all descendant category IDs (including the category itself)
+  const getAllDescendantIds = (categoryId: number): number[] => {
+    const ids = [categoryId];
+    const children = childCategoriesMap.get(categoryId) || [];
+    
+    for (const child of children) {
+      ids.push(...getAllDescendantIds(child.id));
+    }
+    
+    return ids;
+  };
+
   // Build category tree with product counts
   const categoriesByStore: CategoriesByStore = {};
 
@@ -87,9 +99,12 @@ export const getCategories = async (
       continue;
     }
 
-    // Count products in this category (from the filtered products)
-    const productCount = productsWithCategories.filter((p) =>
-      p.categories.some((c: { id: number }) => c.id === category.id)
+    // Get all descendant IDs for this category (including itself and all subcategories)
+    const allDescendantIds = getAllDescendantIds(category.id);
+    
+    // Count products in this category AND all its subcategories
+    const totalProductCount = productsWithCategories.filter((p) =>
+      p.categories.some((c: { id: number }) => allDescendantIds.includes(c.id))
     ).length;
 
     // Get subcategories with product counts
@@ -108,7 +123,7 @@ export const getCategories = async (
 
     const categoryWithCount: CategoryWithCount = {
       ...category,
-      productCount,
+      productCount: totalProductCount, // Now includes all subcategory products
       store: categoryStore,
       subcategories: subcategories.length > 0 ? subcategories : undefined,
     };
