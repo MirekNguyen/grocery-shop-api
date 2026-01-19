@@ -17,7 +17,7 @@
     "query:category": "bun run scripts/query-by-category.ts",
     "scrape:billa": "bun run src/index.ts",
     "scrape:foodora": "bun run src/scrape-foodora-to-db.ts",
-    "scrape:foodora:vendor": "bun run src/scrape-foodora-vendor.ts",
+    "scrape:foodora:store": "bun run src/scrape-foodora-store.ts",
     "scrape:foodora:test": "bun run src/test-foodora-db-integration.ts"
   },
   "dependencies": {

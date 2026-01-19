@@ -6,7 +6,6 @@
 import type { NewProduct } from "../product/product.schema.ts";
 import type { NewCategory } from "../category/category.schema.ts";
 import type { CategoryProductItem } from "./foodora-category.types.ts";
-import { STORE_TYPES } from "../product/product.types.ts";
 import * as ProductRepository from "../product/product.repository.ts";
 import * as CategoryRepository from "../category/category.repository.ts";
 import * as ProductCategoriesRepository from "../category/product-categories.repository.ts";
@@ -19,7 +18,7 @@ export const mapFoodoraProductToDb = (
   categoryId: string,
   categoryName: string,
   categorySlug: string,
-  vendor: string
+  store: string
 ): NewProduct => {
   // Extract base unit from attributes
   const baseUnitAttr = product.attributes?.find((attr) => attr.key === "baseUnit");
@@ -29,8 +28,7 @@ export const mapFoodoraProductToDb = (
   );
 
   return {
-    store: STORE_TYPES.FOODORA,
-    vendor,
+    store,
     
     // Product identifiers
     productId: product.productID,
@@ -104,7 +102,7 @@ export const mapFoodoraProductToDb = (
 export const saveFoodoraCategory = async (
   categoryId: string,
   categoryName: string,
-  vendor: string
+  storeCode: string
 ): Promise<number> => {
   const categorySlug = categoryName
     .toLowerCase()
@@ -112,9 +110,9 @@ export const saveFoodoraCategory = async (
     .replace(/[^a-z0-9-]/g, "");
 
   const newCategory: NewCategory = {
-    key: `foodora-${vendor}-${categoryId}`,
+    key: `${storeCode}-${categoryId}`,
     name: categoryName,
-    slug: `foodora-${vendor}-${categorySlug}`,
+    slug: `${storeCode}-${categorySlug}`,
     orderHint: null,
   };
 
@@ -129,7 +127,8 @@ export const saveFoodoraProduct = async (
   product: CategoryProductItem,
   categoryId: string,
   categoryName: string,
-  vendor: string
+  store: string,
+  storeCode: string
 ): Promise<void> => {
   const categorySlug = categoryName
     .toLowerCase()
@@ -137,15 +136,15 @@ export const saveFoodoraProduct = async (
     .replace(/[^a-z0-9-]/g, "");
 
   // Save category first
-  const dbCategoryId = await saveFoodoraCategory(categoryId, categoryName, vendor);
+  const dbCategoryId = await saveFoodoraCategory(categoryId, categoryName, storeCode);
 
   // Map and save product
   const dbProduct = mapFoodoraProductToDb(
     product,
     categoryId,
     categoryName,
-    `foodora-${vendor}-${categorySlug}`,
-    vendor
+    `${storeCode}-${categorySlug}`,
+    store
   );
 
   const savedProduct = await ProductRepository.upsertProduct(dbProduct);
@@ -163,13 +162,14 @@ export const saveFoodoraCategoryProducts = async (
   categoryId: string,
   categoryName: string,
   products: CategoryProductItem[],
-  vendor: string
+  store: string,
+  storeCode: string
 ): Promise<number> => {
   let savedCount = 0;
 
   for (const product of products) {
     try {
-      await saveFoodoraProduct(product, categoryId, categoryName, vendor);
+      await saveFoodoraProduct(product, categoryId, categoryName, store, storeCode);
       savedCount++;
     } catch (error) {
       console.error(

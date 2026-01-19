@@ -10,7 +10,6 @@ export interface ProductFilters {
   limit?: number;
   inPromotion?: boolean;
   store?: string;
-  vendor?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -36,7 +35,6 @@ export const getProducts = async (
     limit = 30,
     inPromotion,
     store,
-    vendor,
   } = filters;
 
   // Get products with categories
@@ -45,11 +43,6 @@ export const getProducts = async (
   // Apply store filter
   if (store) {
     products = products.filter((p) => p.store === store);
-  }
-
-  // Apply vendor filter
-  if (vendor) {
-    products = products.filter((p) => p.vendor === vendor);
   }
 
   // Apply search filter using Meilisearch

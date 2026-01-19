@@ -8,7 +8,6 @@ export const products = pgTable('products', {
   
   // Store information
   store: varchar('store', { length: 50 }).notNull().default('BILLA'),
-  vendor: varchar('vendor', { length: 50 }), // For Foodora stores: 'mjul', 'obc6', 'o7b0', etc.
   
   // Product identifiers
   productId: varchar('product_id', { length: 255 }).notNull(),
