@@ -23,7 +23,9 @@ export const initializeProductIndex = async () => {
     
     // Configure filterable attributes
     await index.updateFilterableAttributes([
+      'store',
       'categorySlug',
+      'categoryKeys',
       'brand',
       'inPromotion',
       'published',
@@ -61,9 +63,13 @@ export const indexProduct = async (product: Product & { categories?: any[] }) =>
   try {
     const index = meiliClient.index(PRODUCTS_INDEX);
     
+    // Extract category keys for hierarchical filtering
+    const categoryKeys = product.categories?.map(c => c.key) || [];
+    
     // Prepare document for indexing
     const document = {
       id: product.id,
+      store: product.store,
       productId: product.productId,
       sku: product.sku,
       slug: product.slug,
@@ -73,6 +79,7 @@ export const indexProduct = async (product: Product & { categories?: any[] }) =>
       descriptionLong: product.descriptionLong,
       category: product.category,
       categorySlug: product.categorySlug,
+      categoryKeys: categoryKeys,
       price: product.price,
       pricePerUnit: product.pricePerUnit,
       inPromotion: product.inPromotion,
@@ -97,27 +104,34 @@ export const indexProducts = async (products: (Product & { categories?: any[] })
   try {
     const index = meiliClient.index(PRODUCTS_INDEX);
     
-    const documents = products.map(product => ({
-      id: product.id,
-      productId: product.productId,
-      sku: product.sku,
-      slug: product.slug,
-      name: product.name,
-      brand: product.brand,
-      descriptionShort: product.descriptionShort,
-      descriptionLong: product.descriptionLong,
-      category: product.category,
-      categorySlug: product.categorySlug,
-      price: product.price,
-      pricePerUnit: product.pricePerUnit,
-      inPromotion: product.inPromotion,
-      published: product.published,
-      amount: product.amount,
-      volumeLabelShort: product.volumeLabelShort,
-      baseUnitShort: product.baseUnitShort,
-      images: product.images,
-      scrapedAt: product.scrapedAt,
-    }));
+    const documents = products.map(product => {
+      // Extract category keys for hierarchical filtering
+      const categoryKeys = product.categories?.map(c => c.key) || [];
+      
+      return {
+        id: product.id,
+        store: product.store,
+        productId: product.productId,
+        sku: product.sku,
+        slug: product.slug,
+        name: product.name,
+        brand: product.brand,
+        descriptionShort: product.descriptionShort,
+        descriptionLong: product.descriptionLong,
+        category: product.category,
+        categorySlug: product.categorySlug,
+        categoryKeys: categoryKeys,
+        price: product.price,
+        pricePerUnit: product.pricePerUnit,
+        inPromotion: product.inPromotion,
+        published: product.published,
+        amount: product.amount,
+        volumeLabelShort: product.volumeLabelShort,
+        baseUnitShort: product.baseUnitShort,
+        images: product.images,
+        scrapedAt: product.scrapedAt,
+      };
+    });
     
     const task = await index.addDocuments(documents, { primaryKey: 'id' });
     console.log(`✅ Indexed ${documents.length} products (task: ${task.taskUid})`);

@@ -25,6 +25,7 @@ export interface PaginatedResponse<T> {
 
 /**
  * Get all products with optional filters and pagination
+ * ALWAYS uses Meilisearch for fast querying
  */
 export const getProducts = async (
   filters: ProductFilters = {}
@@ -38,60 +39,70 @@ export const getProducts = async (
     store,
   } = filters;
 
-  // Get products with categories
-  let products = await ProductQueries.findAllProductsWithCategories();
-
-  // Apply store filter
+  // Build Meilisearch filters
+  const meiliFilters: string[] = [];
+  
+  // Filter by store
   if (store) {
-    products = products.filter((p) => p.store === store);
+    meiliFilters.push(`store = "${store}"`);
   }
-
-  // Apply search filter using Meilisearch
-  if (search) {
-    const searchResults = await ProductMeiliService.searchProducts(search, {
-      limit: 1000,
-      filter: category ? [`categorySlug = "${category}"`] : undefined,
-    });
-    
-    if (searchResults.hits.length > 0) {
-      const productIds = new Set(searchResults.hits.map((hit: any) => hit.id));
-      products = products.filter((p) => productIds.has(p.id));
-      // Sort by Meilisearch ranking
-      const idOrder = new Map(searchResults.hits.map((hit: any, index: number) => [hit.id, index]));
-      products.sort((a, b) => (idOrder.get(a.id) ?? 999999) - (idOrder.get(b.id) ?? 999999));
-    } else {
-      products = [];
-    }
-  } else if (category) {
+  
+  // Filter by category (including all subcategories)
+  if (category) {
     // Get all descendant category keys (includes parent + all subcategories)
     const categoryKeys = await CategoryRepository.getAllDescendantCategoryKeys(category);
     
-    // Apply category filter - include products from parent category and all subcategories
-    products = products.filter((p) =>
-      p.categories.some((c) => categoryKeys.includes(c.key))
-    );
+    if (categoryKeys.length > 0) {
+      // Use OR filter to match any of the category keys
+      const categoryFilter = categoryKeys.map(key => `categoryKeys = "${key}"`).join(' OR ');
+      meiliFilters.push(`(${categoryFilter})`);
+    }
   }
-
-  // Apply promotion filter
+  
+  // Filter by promotion status
   if (inPromotion !== undefined) {
-    products = products.filter((p) => p.inPromotion === inPromotion);
+    meiliFilters.push(`inPromotion = ${inPromotion}`);
   }
 
-  // Calculate pagination
-  const total = products.length;
-  const totalPages = Math.ceil(total / limit);
+  // Search using Meilisearch
+  const searchQuery = search || ''; // Empty string returns all results
   const offset = (page - 1) * limit;
-
-  // Apply pagination
-  const paginatedProducts = products.slice(offset, offset + limit);
+  
+  const searchResults = await ProductMeiliService.searchProducts(searchQuery, {
+    limit: limit,
+    offset: offset,
+    filter: meiliFilters.length > 0 ? meiliFilters : undefined,
+  });
+  
+  // If no results, return empty response
+  if (searchResults.hits.length === 0) {
+    return {
+      data: [],
+      pagination: {
+        page,
+        limit,
+        total: searchResults.estimatedTotalHits || 0,
+        totalPages: 0,
+      },
+    };
+  }
+  
+  // Get full product details with categories from database (only for search results)
+  const productIds = searchResults.hits.map((hit: any) => hit.id);
+  const productsWithCategories = await ProductQueries.findProductsByIdsWithCategories(productIds);
+  
+  // Maintain Meilisearch ranking order
+  const idOrder = new Map(productIds.map((id, index) => [id, index]));
+  const products = productsWithCategories
+    .sort((a, b) => (idOrder.get(a.id) ?? 999999) - (idOrder.get(b.id) ?? 999999));
 
   return {
-    data: paginatedProducts,
+    data: products,
     pagination: {
       page,
       limit,
-      total,
-      totalPages,
+      total: searchResults.estimatedTotalHits || 0,
+      totalPages: Math.ceil((searchResults.estimatedTotalHits || 0) / limit),
     },
   };
 };

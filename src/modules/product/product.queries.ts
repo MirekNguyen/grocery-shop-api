@@ -147,3 +147,49 @@ export const getCategoriesForProduct = async (productId: number) => {
     .innerJoin(categories, eq(productCategories.categoryId, categories.id))
     .where(eq(productCategories.productId, productId));
 };
+
+/**
+ * Gets products by IDs with their categories (efficient for Meilisearch results).
+ */
+export const findProductsByIdsWithCategories = async (productIds: number[]) => {
+  if (productIds.length === 0) {
+    return [];
+  }
+  
+  // Import inArray operator
+  const { inArray } = await import('drizzle-orm');
+  
+  // Get products
+  const productsData = await db
+    .select()
+    .from(products)
+    .where(inArray(products.id, productIds));
+  
+  const productMap = new Map();
+  
+  for (const product of productsData) {
+    productMap.set(product.id, {
+      ...product,
+      categories: [],
+    });
+  }
+  
+  // Get categories for these products
+  const links = await db
+    .select({
+      productId: productCategories.productId,
+      category: categories,
+    })
+    .from(productCategories)
+    .innerJoin(categories, eq(productCategories.categoryId, categories.id))
+    .where(inArray(productCategories.productId, productIds));
+  
+  for (const link of links) {
+    const product = productMap.get(link.productId);
+    if (product) {
+      product.categories.push(link.category);
+    }
+  }
+  
+  return Array.from(productMap.values());
+};
