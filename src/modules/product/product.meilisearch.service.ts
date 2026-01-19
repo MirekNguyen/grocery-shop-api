@@ -49,6 +49,13 @@ export const initializeProductIndex = async () => {
       'exactness',
     ]);
     
+    // Configure pagination settings
+    await index.updateSettings({
+      pagination: {
+        maxTotalHits: 20000  // Increase from default 1000 to support large product catalogs
+      }
+    });
+    
     console.log('✅ Meilisearch product index initialized');
   } catch (error) {
     console.error('❌ Error initializing Meilisearch index:', error);
