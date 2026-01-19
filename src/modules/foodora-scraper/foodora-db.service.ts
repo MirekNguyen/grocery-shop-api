@@ -129,6 +129,8 @@ export const saveFoodoraCategory = async (
 
 /**
  * Saves a Foodora product and links it to its category
+ * NOTE: This function assumes the category already exists in the database.
+ * The category should be created by the scraper before calling this function.
  */
 export const saveFoodoraProduct = async (
   product: CategoryProductItem,
@@ -142,10 +144,34 @@ export const saveFoodoraProduct = async (
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "");
 
-  // Save category first
-  const dbCategoryId = await saveFoodoraCategory(categoryId, categoryName, storeCode);
+  // Find the existing category (should already exist from scraper)
+  const dbCategory = await CategoryRepository.findCategoryByKey(`${storeCode}-${categoryId}`);
+  
+  if (!dbCategory) {
+    // Category doesn't exist - this shouldn't happen if scraper runs correctly
+    // Create it without parent as fallback
+    console.warn(`⚠️  Category ${categoryName} not found, creating without parent`);
+    const dbCategoryId = await saveFoodoraCategory(categoryId, categoryName, storeCode);
+    
+    // Map and save product
+    const dbProduct = mapFoodoraProductToDb(
+      product,
+      categoryId,
+      categoryName,
+      `${storeCode}-${categorySlug}`,
+      store
+    );
 
-  // Map and save product
+    const savedProduct = await ProductRepository.upsertProduct(dbProduct);
+
+    // Link product to category
+    await ProductCategoriesRepository.linkProductToCategories(savedProduct.id, [
+      dbCategoryId,
+    ]);
+    return;
+  }
+
+  // Map and save product using existing category
   const dbProduct = mapFoodoraProductToDb(
     product,
     categoryId,
@@ -158,7 +184,7 @@ export const saveFoodoraProduct = async (
 
   // Link product to category
   await ProductCategoriesRepository.linkProductToCategories(savedProduct.id, [
-    dbCategoryId,
+    dbCategory.id,
   ]);
 };
 
