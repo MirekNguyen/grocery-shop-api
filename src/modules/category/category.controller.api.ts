@@ -24,13 +24,34 @@ const IMPORTANT_CATEGORY_SLUGS = [
 ];
 
 /**
- * Get all categories with product counts (filtered to important categories only)
+ * Determines which store a category belongs to based on its slug
+ */
+const getCategoryStore = (slug: string): string => {
+  if (slug.startsWith('foodora-billa-prosek-')) {
+    return 'FOODORA_BILLA_PROSEK';
+  }
+  if (slug.startsWith('foodora-albert-florenc-')) {
+    return 'FOODORA_ALBERT_FLORENC';
+  }
+  if (slug.startsWith('foodora-dmart-')) {
+    return 'FOODORA_DMART';
+  }
+  // Default to BILLA for categories without prefix
+  return 'BILLA';
+};
+
+type CategoryWithCount = Category & { productCount: number; store: string };
+
+type CategoriesByStore = {
+  [store: string]: CategoryWithCount[];
+};
+
+/**
+ * Get all categories grouped by store/market
  */
 export const getCategories = async (
   store?: string
-): Promise<
-  (Category & { productCount: number })[]
-> => {
+): Promise<CategoriesByStore> => {
   const categories = await CategoryRepository.findAllCategories();
   let productsWithCategories = await ProductQueries.findAllProductsWithCategories();
 
@@ -39,22 +60,36 @@ export const getCategories = async (
     productsWithCategories = productsWithCategories.filter((p) => p.store === store);
   }
 
-  // Filter to only important categories
-  const importantCategories = categories.filter((cat) =>
-    IMPORTANT_CATEGORY_SLUGS.includes(cat.slug)
-  );
+  // Group categories by store
+  const categoriesByStore: CategoriesByStore = {};
 
-  // Count products per category
-  return importantCategories.map((category) => {
+  for (const category of categories) {
+    const categoryStore = getCategoryStore(category.slug);
+    
+    // If store filter is applied, skip categories from other stores
+    if (store && categoryStore !== store) {
+      continue;
+    }
+
+    // Count products in this category (from the filtered products)
     const productCount = productsWithCategories.filter((p) =>
       p.categories.some((c) => c.id === category.id)
     ).length;
 
-    return {
+    const categoryWithCount: CategoryWithCount = {
       ...category,
       productCount,
+      store: categoryStore,
     };
-  });
+
+    if (!categoriesByStore[categoryStore]) {
+      categoriesByStore[categoryStore] = [];
+    }
+
+    categoriesByStore[categoryStore].push(categoryWithCount);
+  }
+
+  return categoriesByStore;
 };
 
 /**
