@@ -87,6 +87,7 @@ export const mapProductToDb = async (
   }
   
   const newProduct: NewProduct = {
+    store: 'BILLA',
     productId: product.productId,
     sku: product.sku,
     slug: product.slug,

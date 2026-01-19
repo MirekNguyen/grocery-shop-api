@@ -6,8 +6,11 @@ import { productCategories } from '../category/product-categories.schema';
 export const products = pgTable('products', {
   id: serial('id').primaryKey(),
   
+  // Store information
+  store: varchar('store', { length: 50 }).notNull().default('BILLA'),
+  
   // Product identifiers
-  productId: varchar('product_id', { length: 255 }).notNull().unique(),
+  productId: varchar('product_id', { length: 255 }).notNull(),
   sku: varchar('sku', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 255 }).notNull(),
   

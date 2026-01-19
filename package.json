@@ -11,9 +11,13 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:stats": "bun run scripts/stats.ts",
+    "db:check": "bun run scripts/check-db-stats.ts",
     "search:setup": "bun run scripts/setup-meilisearch.ts",
     "search:index": "bun run scripts/index-products-meili.ts",
-    "query:category": "bun run scripts/query-by-category.ts"
+    "query:category": "bun run scripts/query-by-category.ts",
+    "scrape:billa": "bun run src/index.ts",
+    "scrape:foodora": "bun run src/scrape-foodora-to-db.ts",
+    "scrape:foodora:test": "bun run src/test-foodora-db-integration.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",

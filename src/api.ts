@@ -24,6 +24,7 @@ const app = new Elysia()
       page: query.page ? parseInt(query.page as string) : 1,
       limit: query.limit ? parseInt(query.limit as string) : 30,
       inPromotion: query.inPromotion === 'true' ? true : undefined,
+      store: query.store as string | undefined,
     };
 
     return await ProductController.getProducts(filters);
