@@ -82,6 +82,21 @@ export const getProductCount = async (): Promise<number> => {
 };
 
 /**
+ * Gets list of available stores with product counts.
+ */
+export const getAvailableStores = async (): Promise<Array<{ store: string; count: number }>> => {
+  const result = await db
+    .select({
+      store: products.store,
+      count: sql<number>`count(*)`,
+    })
+    .from(products)
+    .groupBy(products.store);
+  
+  return result;
+};
+
+/**
  * Deletes all products (use with caution).
  */
 export const deleteAllProducts = async (): Promise<void> => {

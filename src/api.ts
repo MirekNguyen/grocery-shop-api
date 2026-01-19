@@ -61,6 +61,11 @@ const app = new Elysia()
     return product;
   })
 
+  // Stores endpoint
+  .get('/api/stores', async () => {
+    return await ProductController.getAvailableStores();
+  })
+
   // Categories endpoints
   .get('/api/categories', async ({ query }) => {
     const store = query.store as string | undefined;
@@ -104,6 +109,7 @@ console.log(
 console.log('');
 console.log('Available endpoints:');
 console.log('  GET  /health');
+console.log('  GET  /api/stores');
 console.log('  GET  /api/products');
 console.log('  GET  /api/products/promotions');
 console.log('  GET  /api/products/:id');

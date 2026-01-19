@@ -122,3 +122,10 @@ export const getPromotionProducts = async (
   const products = await ProductQueries.findAllProductsWithCategories();
   return products.filter((p) => p.inPromotion).slice(0, limit);
 };
+
+/**
+ * Get available stores with product counts
+ */
+export const getAvailableStores = async (): Promise<Array<{ store: string; count: number }>> => {
+  return await ProductRepository.getAvailableStores();
+};
